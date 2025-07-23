@@ -1,4 +1,4 @@
-import { ZodDateDef } from "zod";
+import { ZodDateDef } from "../zodV3V4Compat.js";
 import { Refs } from "../Refs.js";
 import { ErrorMessages, setResponseValueAndErrors } from "../errorMessages.js";
 import { JsonSchema7NumberType } from "./number.js";
@@ -46,7 +46,8 @@ export function parseDateDef(
   }
 }
 
-const integerDateParser = (def: any, refs: Refs) => { // Changed from ZodDateDef to any for Zod V4 compatibility
+const integerDateParser = (def: any, refs: Refs) => {
+  // Changed from ZodDateDef to any for Zod V4 compatibility
   const res: JsonSchema7DateType = {
     type: "integer",
     format: "unix-time",
@@ -64,7 +65,11 @@ const integerDateParser = (def: any, refs: Refs) => { // Changed from ZodDateDef
       if (checkDef) {
         // Get error message from error function if available
         let message = checkDef.message;
-        if (!message && checkDef.error && typeof checkDef.error === 'function') {
+        if (
+          !message &&
+          checkDef.error &&
+          typeof checkDef.error === "function"
+        ) {
           try {
             message = checkDef.error();
           } catch (e) {
@@ -75,25 +80,19 @@ const integerDateParser = (def: any, refs: Refs) => { // Changed from ZodDateDef
         switch (checkDef.check) {
           case "greater_than":
             // Convert Date to milliseconds for JSON Schema
-            const minValue = checkDef.value instanceof Date ? checkDef.value.getTime() : checkDef.value;
-            setResponseValueAndErrors(
-              res,
-              "minimum",
-              minValue,
-              message,
-              refs,
-            );
+            const minValue =
+              checkDef.value instanceof Date
+                ? checkDef.value.getTime()
+                : checkDef.value;
+            setResponseValueAndErrors(res, "minimum", minValue, message, refs);
             break;
           case "less_than":
             // Convert Date to milliseconds for JSON Schema
-            const maxValue = checkDef.value instanceof Date ? checkDef.value.getTime() : checkDef.value;
-            setResponseValueAndErrors(
-              res,
-              "maximum",
-              maxValue,
-              message,
-              refs,
-            );
+            const maxValue =
+              checkDef.value instanceof Date
+                ? checkDef.value.getTime()
+                : checkDef.value;
+            setResponseValueAndErrors(res, "maximum", maxValue, message, refs);
             break;
         }
       } else {

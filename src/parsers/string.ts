@@ -1,4 +1,4 @@
-import { ZodStringDef } from "zod";
+import { ZodStringDef } from "../zodV3V4Compat.js";
 import { ErrorMessages, setResponseValueAndErrors } from "../errorMessages.js";
 import { Refs } from "../Refs.js";
 
@@ -110,7 +110,11 @@ export function parseStringDef(
           case "min_length":
             // Extract error message for min_length check
             let minLengthMessage = checkDef.message;
-            if (!minLengthMessage && checkDef.error && typeof checkDef.error === 'function') {
+            if (
+              !minLengthMessage &&
+              checkDef.error &&
+              typeof checkDef.error === "function"
+            ) {
               try {
                 minLengthMessage = checkDef.error();
               } catch (e) {
@@ -130,7 +134,11 @@ export function parseStringDef(
           case "max_length":
             // Extract error message for max_length check
             let maxLengthMessage = checkDef.message;
-            if (!maxLengthMessage && checkDef.error && typeof checkDef.error === 'function') {
+            if (
+              !maxLengthMessage &&
+              checkDef.error &&
+              typeof checkDef.error === "function"
+            ) {
               try {
                 maxLengthMessage = checkDef.error();
               } catch (e) {
@@ -150,7 +158,11 @@ export function parseStringDef(
           case "length_equals":
             // Handle exact length constraint
             let message = checkDef.message;
-            if (!message && checkDef.error && typeof checkDef.error === 'function') {
+            if (
+              !message &&
+              checkDef.error &&
+              typeof checkDef.error === "function"
+            ) {
               try {
                 message = checkDef.error();
               } catch (e) {
@@ -185,7 +197,11 @@ export function parseStringDef(
           case "string_format":
             // Extract error message for string format checks
             let formatMessage = checkDef.message;
-            if (!formatMessage && checkDef.error && typeof checkDef.error === 'function') {
+            if (
+              !formatMessage &&
+              checkDef.error &&
+              typeof checkDef.error === "function"
+            ) {
               try {
                 formatMessage = checkDef.error();
               } catch (e) {
@@ -263,7 +279,11 @@ export function parseStringDef(
             } else if (format === "regex" && checkDef.pattern) {
               // Handle Zod V4 regex format
               let message = checkDef.message;
-              if (!message && checkDef.error && typeof checkDef.error === 'function') {
+              if (
+                !message &&
+                checkDef.error &&
+                typeof checkDef.error === "function"
+              ) {
                 try {
                   message = checkDef.error();
                 } catch (e) {
@@ -274,7 +294,11 @@ export function parseStringDef(
             } else if (checkDef.pattern) {
               // Handle formats with patterns (cuid, cuid2, nanoid, ulid, startsWith, endsWith, includes, etc.)
               let message = checkDef.message;
-              if (!message && checkDef.error && typeof checkDef.error === 'function') {
+              if (
+                !message &&
+                checkDef.error &&
+                typeof checkDef.error === "function"
+              ) {
                 try {
                   message = checkDef.error();
                 } catch (e) {
@@ -308,12 +332,24 @@ export function parseStringDef(
               const patternSource = checkDef.pattern.source;
 
               // For startsWith: remove trailing .*
-              if (patternSource.startsWith('^') && patternSource.endsWith('.*')) {
-                normalizedPattern = new RegExp(patternSource.slice(0, -2), checkDef.pattern.flags);
+              if (
+                patternSource.startsWith("^") &&
+                patternSource.endsWith(".*")
+              ) {
+                normalizedPattern = new RegExp(
+                  patternSource.slice(0, -2),
+                  checkDef.pattern.flags,
+                );
               }
               // For endsWith: remove leading .*
-              else if (patternSource.startsWith('.*') && patternSource.endsWith('$')) {
-                normalizedPattern = new RegExp(patternSource.slice(2), checkDef.pattern.flags);
+              else if (
+                patternSource.startsWith(".*") &&
+                patternSource.endsWith("$")
+              ) {
+                normalizedPattern = new RegExp(
+                  patternSource.slice(2),
+                  checkDef.pattern.flags,
+                );
               }
 
               addPattern(res, normalizedPattern, message, refs);
@@ -349,159 +385,160 @@ export function parseStringDef(
             );
 
             break;
-        case "email":
-          switch (refs.emailStrategy) {
-            case "format:email":
-              addFormat(res, "email", check.message, refs);
-              break;
-            case "format:idn-email":
-              addFormat(res, "idn-email", check.message, refs);
-              break;
-            case "pattern:zod":
-              addPattern(res, zodPatterns.email, check.message, refs);
-              break;
-          }
-
-          break;
-        case "url":
-          addFormat(res, "uri", check.message, refs);
-          break;
-        case "uuid":
-          addFormat(res, "uuid", check.message, refs);
-          break;
-        case "regex":
-          addPattern(res, check.regex, check.message, refs);
-          break;
-
-        case "cuid":
-          addPattern(res, zodPatterns.cuid, check.message, refs);
-          break;
-        case "cuid2":
-          addPattern(res, zodPatterns.cuid2, check.message, refs);
-          break;
-        case "startsWith":
-          addPattern(
-            res,
-            RegExp(`^${escapeLiteralCheckValue(check.value, refs)}`),
-            check.message,
-            refs,
-          );
-          break;
-        case "endsWith":
-          addPattern(
-            res,
-            RegExp(`${escapeLiteralCheckValue(check.value, refs)}$`),
-            check.message,
-            refs,
-          );
-          break;
-        case "datetime":
-          addFormat(res, "date-time", check.message, refs);
-          break;
-        case "date":
-          addFormat(res, "date", check.message, refs);
-          break;
-        case "time":
-          addFormat(res, "time", check.message, refs);
-          break;
-        case "duration":
-          addFormat(res, "duration", check.message, refs);
-          break;
-        case "length":
-          setResponseValueAndErrors(
-            res,
-            "minLength",
-            typeof res.minLength === "number"
-              ? Math.max(res.minLength, check.value)
-              : check.value,
-            check.message,
-            refs,
-          );
-          setResponseValueAndErrors(
-            res,
-            "maxLength",
-            typeof res.maxLength === "number"
-              ? Math.min(res.maxLength, check.value)
-              : check.value,
-            check.message,
-            refs,
-          );
-          break;
-        case "includes": {
-          addPattern(
-            res,
-            RegExp(escapeLiteralCheckValue(check.value, refs)),
-            check.message,
-            refs,
-          );
-          break;
-        }
-        case "ip": {
-          if (check.version !== "v6") {
-            addFormat(res, "ipv4", check.message, refs);
-          }
-          if (check.version !== "v4") {
-            addFormat(res, "ipv6", check.message, refs);
-          }
-          break;
-        }
-        case "base64url":
-          addPattern(res, zodPatterns.base64url, check.message, refs);
-          break;
-        case "jwt":
-          addPattern(res, zodPatterns.jwt, check.message, refs);
-          break;
-        case "cidr": {
-          if (check.version !== "v6") {
-            addPattern(res, zodPatterns.ipv4Cidr, check.message, refs);
-          }
-          if (check.version !== "v4") {
-            addPattern(res, zodPatterns.ipv6Cidr, check.message, refs);
-          }
-          break;
-        }
-        case "emoji":
-          addPattern(res, zodPatterns.emoji(), check.message, refs);
-          break;
-        case "ulid": {
-          addPattern(res, zodPatterns.ulid, check.message, refs);
-          break;
-        }
-        case "base64": {
-          switch (refs.base64Strategy) {
-            case "format:binary": {
-              addFormat(res, "binary" as any, check.message, refs);
-              break;
+          case "email":
+            switch (refs.emailStrategy) {
+              case "format:email":
+                addFormat(res, "email", check.message, refs);
+                break;
+              case "format:idn-email":
+                addFormat(res, "idn-email", check.message, refs);
+                break;
+              case "pattern:zod":
+                addPattern(res, zodPatterns.email, check.message, refs);
+                break;
             }
 
-            case "contentEncoding:base64": {
-              setResponseValueAndErrors(
-                res,
-                "contentEncoding",
-                "base64",
-                check.message,
-                refs,
-              );
-              break;
-            }
+            break;
+          case "url":
+            addFormat(res, "uri", check.message, refs);
+            break;
+          case "uuid":
+            addFormat(res, "uuid", check.message, refs);
+            break;
+          case "regex":
+            addPattern(res, check.regex, check.message, refs);
+            break;
 
-            case "pattern:zod": {
-              addPattern(res, zodPatterns.base64, check.message, refs);
-              break;
-            }
+          case "cuid":
+            addPattern(res, zodPatterns.cuid, check.message, refs);
+            break;
+          case "cuid2":
+            addPattern(res, zodPatterns.cuid2, check.message, refs);
+            break;
+          case "startsWith":
+            addPattern(
+              res,
+              RegExp(`^${escapeLiteralCheckValue(check.value, refs)}`),
+              check.message,
+              refs,
+            );
+            break;
+          case "endsWith":
+            addPattern(
+              res,
+              RegExp(`${escapeLiteralCheckValue(check.value, refs)}$`),
+              check.message,
+              refs,
+            );
+            break;
+          case "datetime":
+            addFormat(res, "date-time", check.message, refs);
+            break;
+          case "date":
+            addFormat(res, "date", check.message, refs);
+            break;
+          case "time":
+            addFormat(res, "time", check.message, refs);
+            break;
+          case "duration":
+            addFormat(res, "duration", check.message, refs);
+            break;
+          case "length":
+            setResponseValueAndErrors(
+              res,
+              "minLength",
+              typeof res.minLength === "number"
+                ? Math.max(res.minLength, check.value)
+                : check.value,
+              check.message,
+              refs,
+            );
+            setResponseValueAndErrors(
+              res,
+              "maxLength",
+              typeof res.maxLength === "number"
+                ? Math.min(res.maxLength, check.value)
+                : check.value,
+              check.message,
+              refs,
+            );
+            break;
+          case "includes": {
+            addPattern(
+              res,
+              RegExp(escapeLiteralCheckValue(check.value, refs)),
+              check.message,
+              refs,
+            );
+            break;
           }
-          break;
-        }
-        case "nanoid": {
-          addPattern(res, zodPatterns.nanoid, check.message, refs);
-        }
-        case "toLowerCase":
-        case "toUpperCase":
-        case "trim":
-          break;
-        default:
-          /* c8 ignore next */
-          ((_: never) => {})(check);
+          case "ip": {
+            if (check.version !== "v6") {
+              addFormat(res, "ipv4", check.message, refs);
+            }
+            if (check.version !== "v4") {
+              addFormat(res, "ipv6", check.message, refs);
+            }
+            break;
+          }
+          case "base64url":
+            addPattern(res, zodPatterns.base64url, check.message, refs);
+            break;
+          case "jwt":
+            addPattern(res, zodPatterns.jwt, check.message, refs);
+            break;
+          case "cidr": {
+            if (check.version !== "v6") {
+              addPattern(res, zodPatterns.ipv4Cidr, check.message, refs);
+            }
+            if (check.version !== "v4") {
+              addPattern(res, zodPatterns.ipv6Cidr, check.message, refs);
+            }
+            break;
+          }
+          case "emoji":
+            addPattern(res, zodPatterns.emoji(), check.message, refs);
+            break;
+          case "ulid": {
+            addPattern(res, zodPatterns.ulid, check.message, refs);
+            break;
+          }
+          case "base64": {
+            switch (refs.base64Strategy) {
+              case "format:binary": {
+                addFormat(res, "binary" as any, check.message, refs);
+                break;
+              }
+
+              case "contentEncoding:base64": {
+                setResponseValueAndErrors(
+                  res,
+                  "contentEncoding",
+                  "base64",
+                  check.message,
+                  refs,
+                );
+                break;
+              }
+
+              case "pattern:zod": {
+                addPattern(res, zodPatterns.base64, check.message, refs);
+                break;
+              }
+            }
+            break;
+          }
+          case "nanoid": {
+            addPattern(res, zodPatterns.nanoid, check.message, refs);
+          }
+          case "toLowerCase":
+          case "toUpperCase":
+          case "trim":
+            break;
+          default:
+            /* c8 ignore next */
+            // Handle unknown check types in V3/V4 compatibility
+            break;
         }
       }
     }

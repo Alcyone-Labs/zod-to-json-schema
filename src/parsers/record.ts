@@ -3,7 +3,7 @@ import {
   ZodMapDef,
   ZodRecordDef,
   ZodTypeAny,
-} from "zod";
+} from "../zodV3V4Compat.js";
 import { parseDef } from "../parseDef.js";
 import { JsonSchema7Type } from "../parseTypes.js";
 import { Refs } from "../Refs.js";

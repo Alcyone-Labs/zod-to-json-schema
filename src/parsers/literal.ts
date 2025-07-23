@@ -1,4 +1,4 @@
-import { ZodLiteralDef } from "zod";
+import { ZodLiteralDef } from "../zodV3V4Compat.js";
 import { Refs } from "../Refs.js";
 
 export type JsonSchema7LiteralType =

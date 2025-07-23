@@ -4,35 +4,14 @@ import { parseDef, setSchemaMetaInfo } from "./parseDef.js";
 import { JsonSchema7Type } from "./parseTypes.js";
 import { getRefs } from "./Refs.js";
 import { parseAnyDef } from "./parsers/any.js";
+import { extractMetadata } from "./zodV3V4Compat.js";
 
 // Function to extract and store meta information from a schema
 const extractAndStoreMetaInfo = (schema: any) => {
   if (!schema || !schema._def) return;
 
-  // Extract meta information from the schema
-  let metaInfo: any = {};
-
-  // Check for description in Zod V3 way (_def.description)
-  if (schema._def && schema._def.description) {
-    metaInfo.description = schema._def.description;
-  }
-
-  // Check for meta function (from .meta()) - available in Zod V4
-  if (typeof schema.meta === "function") {
-    try {
-      const meta = schema.meta();
-      if (meta && typeof meta === "object") {
-        metaInfo = { ...metaInfo, ...meta };
-      }
-    } catch (e) {
-      // Ignore errors when calling meta()
-    }
-  }
-
-  // Also check for description property directly (Zod V4 fallback)
-  if (!metaInfo.description && schema.description) {
-    metaInfo.description = schema.description;
-  }
+  // Extract meta information using the compatibility layer
+  const metaInfo = extractMetadata(schema);
 
   // Store the meta information if we found any
   if (Object.keys(metaInfo).length > 0) {

@@ -1,4 +1,4 @@
-import { ZodNumberDef } from "zod";
+import { ZodNumberDef } from "../zodV3V4Compat.js";
 import {
   addErrorMessage,
   ErrorMessages,

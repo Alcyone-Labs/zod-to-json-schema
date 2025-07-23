@@ -36,5 +36,6 @@ export * from "./parsers/union.js";
 export * from "./parsers/unknown.js";
 export * from "./selectParser.js";
 export * from "./zodToJsonSchema.js";
+export * from "./zodV3V4Compat.js";
 import { zodToJsonSchema } from "./zodToJsonSchema.js";
 export default zodToJsonSchema;

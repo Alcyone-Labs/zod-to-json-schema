@@ -1,4 +1,4 @@
-import { ZodFirstPartyTypeKind } from "zod";
+import { ZodFirstPartyTypeKind } from "./zodV3V4Compat.js";
 import { parseAnyDef } from "./parsers/any.js";
 import { parseArrayDef } from "./parsers/array.js";
 import { parseBigintDef } from "./parsers/bigint.js";
@@ -198,6 +198,6 @@ export const selectParser = (
       return parseAnyDef(refs);
     default:
       /* c8 ignore next */
-      return ((_: never) => undefined)(typeName);
+      return undefined;
   }
 };

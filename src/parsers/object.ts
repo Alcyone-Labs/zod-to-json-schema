@@ -1,4 +1,4 @@
-import { ZodObjectDef, ZodTypeAny } from "zod";
+import { ZodObjectDef, ZodTypeAny } from "../zodV3V4Compat.js";
 import { parseDef } from "../parseDef.js";
 import { JsonSchema7Type } from "../parseTypes.js";
 import { Refs } from "../Refs.js";
@@ -53,11 +53,15 @@ export function parseObjectDef(def: ZodObjectDef, refs: Refs) {
           });
 
           // Convert to nullable type for OpenAI mode
-          if (innerParsed && typeof innerParsed === 'object' && 'type' in innerParsed) {
-            if (typeof innerParsed.type === 'string') {
+          if (
+            innerParsed &&
+            typeof innerParsed === "object" &&
+            "type" in innerParsed
+          ) {
+            if (typeof innerParsed.type === "string") {
               parsedDef = {
                 ...innerParsed,
-                type: [innerParsed.type, "null"]
+                type: [innerParsed.type, "null"],
               };
             } else {
               parsedDef = innerParsed;
@@ -81,7 +85,7 @@ export function parseObjectDef(def: ZodObjectDef, refs: Refs) {
       continue;
     }
 
-    result.properties[propName] = parsedDef;
+    result.properties[propName] = parsedDef as JsonSchema7Type;
 
     if (!propOptional) {
       required.push(propName);

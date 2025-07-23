@@ -1,4 +1,9 @@
-import { ZodTypeDef } from "zod";
+import {
+  ZodTypeDef,
+  getDefTypeName,
+  getInnerTypeDef,
+  isNullableType,
+} from "./zodV3V4Compat.js";
 import { Refs, Seen } from "./Refs.js";
 import { ignoreOverride } from "./Options.js";
 import { JsonSchema7Type } from "./parseTypes.js";
@@ -42,15 +47,14 @@ export function parseDef(
 
     if (seenSchema !== undefined) {
       // Special handling for nullable schemas in OpenAPI mode
-      const typeName = (def as any).typeName || (def as any).type;
+      const typeName = getDefTypeName(def);
       if (
-        (typeName === "nullable" || typeName === "ZodNullable") &&
+        isNullableType(def) &&
         refs.target === "openApi3" &&
         "$ref" in seenSchema
       ) {
         const metaInfo = getSchemaMetaInfo(def);
-        const innerTypeDef =
-          (def as any).innerType?.def || (def as any).innerType?._def;
+        const innerTypeDef = getInnerTypeDef(def);
         const innerSeenItem = innerTypeDef ? refs.seen.get(innerTypeDef) : null;
 
         // Check if this nullable schema or its inner type has metadata
@@ -131,7 +135,7 @@ export function parseDef(
 
   refs.seen.set(def, newItem);
 
-  const typeName = (def as any).typeName || (def as any).type;
+  const typeName = getDefTypeName(def);
   const jsonSchemaOrGetter = selectParser(def, typeName, refs);
 
   // If the return was a function, then the inner definition needs to be extracted before a call to parseDef (recursive)
@@ -222,7 +226,7 @@ const addMeta = (
       jsonSchema.title = metaInfo.title;
     }
     if (metaInfo.examples) {
-      jsonSchema.examples = metaInfo.examples;
+      (jsonSchema as any).examples = metaInfo.examples;
     }
     // Add any other meta properties
     for (const [key, value] of Object.entries(metaInfo)) {

@@ -1,9 +1,14 @@
-import { ZodNullableDef } from "zod";
+import {
+  ZodNullableDef,
+  getInnerTypeDef,
+  getDefTypeName,
+  getAllPrimitiveTypeNames,
+  primitiveMappings,
+} from "../zodV3V4Compat.js";
 import { parseDef, getSchemaMetaInfo } from "../parseDef.js";
 import { JsonSchema7Type } from "../parseTypes.js";
 import { Refs } from "../Refs.js";
 import { JsonSchema7NullType } from "./null.js";
-import { primitiveMappings } from "./union.js";
 
 export type JsonSchema7NullableType =
   | {
@@ -14,25 +19,15 @@ export type JsonSchema7NullableType =
     };
 
 export function parseNullableDef(
-  def: any, // Changed for Zod V4 compatibility
+  def: ZodNullableDef,
   refs: Refs,
 ): JsonSchema7NullableType | undefined {
-  const innerTypeDef = def.innerType.def || def.innerType._def;
-  const innerTypeKey = innerTypeDef.typeName || innerTypeDef.type;
+  const innerTypeDef = getInnerTypeDef(def);
+  const innerTypeKey = getDefTypeName(innerTypeDef);
 
   if (
-    [
-      "ZodString",
-      "ZodNumber",
-      "ZodBigInt",
-      "ZodBoolean",
-      "ZodNull",
-      "string",
-      "number",
-      "bigint",
-      "boolean",
-      "null",
-    ].includes(innerTypeKey) &&
+    innerTypeKey &&
+    getAllPrimitiveTypeNames().includes(innerTypeKey) &&
     (!innerTypeDef.checks || !innerTypeDef.checks.length)
   ) {
     if (refs.target === "openApi3") {

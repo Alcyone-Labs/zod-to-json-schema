@@ -1,4 +1,4 @@
-import { ZodArrayDef, ZodFirstPartyTypeKind } from "zod";
+import { ZodArrayDef, ZodFirstPartyTypeKind } from "../zodV3V4Compat.js";
 import { ErrorMessages, setResponseValueAndErrors } from "../errorMessages.js";
 import { parseDef } from "../parseDef.js";
 import { JsonSchema7Type } from "../parseTypes.js";
@@ -12,7 +12,8 @@ export type JsonSchema7ArrayType = {
   errorMessages?: ErrorMessages<JsonSchema7ArrayType, "items">;
 };
 
-export function parseArrayDef(def: any, refs: Refs) { // Changed from ZodArrayDef to any for Zod V4 compatibility
+export function parseArrayDef(def: any, refs: Refs) {
+  // Changed from ZodArrayDef to any for Zod V4 compatibility
   const res: JsonSchema7ArrayType = {
     type: "array",
   };
@@ -22,10 +23,7 @@ export function parseArrayDef(def: any, refs: Refs) { // Changed from ZodArrayDe
   const elementDef = elementType?.def || elementType?._def;
   const elementTypeName = elementDef?.type || elementDef?.typeName;
 
-  if (
-    elementDef &&
-    elementTypeName !== "any" && elementTypeName !== "ZodAny"
-  ) {
+  if (elementDef && elementTypeName !== "any" && elementTypeName !== "ZodAny") {
     res.items = parseDef(elementDef, {
       ...refs,
       currentPath: [...refs.currentPath, "items"],
@@ -39,7 +37,11 @@ export function parseArrayDef(def: any, refs: Refs) { // Changed from ZodArrayDe
       if (checkDef) {
         // Get error message from error function if available
         let message = checkDef.message;
-        if (!message && checkDef.error && typeof checkDef.error === 'function') {
+        if (
+          !message &&
+          checkDef.error &&
+          typeof checkDef.error === "function"
+        ) {
           try {
             message = checkDef.error();
           } catch (e) {

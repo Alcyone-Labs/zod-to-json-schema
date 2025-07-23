@@ -1,4 +1,4 @@
-import { ZodBigIntDef } from "zod";
+import { ZodBigIntDef } from "../zodV3V4Compat.js";
 import { Refs } from "../Refs.js";
 import { ErrorMessages, setResponseValueAndErrors } from "../errorMessages.js";
 
@@ -30,7 +30,7 @@ export function parseBigintDef(
     if (checkDef) {
       // Get error message from error function if available
       let message = checkDef.message;
-      if (!message && checkDef.error && typeof checkDef.error === 'function') {
+      if (!message && checkDef.error && typeof checkDef.error === "function") {
         try {
           message = checkDef.error();
         } catch (e) {
@@ -64,13 +64,7 @@ export function parseBigintDef(
             if (!checkDef.inclusive) {
               res.exclusiveMinimum = true as any;
             }
-            setResponseValueAndErrors(
-              res,
-              "minimum",
-              minValue,
-              message,
-              refs,
-            );
+            setResponseValueAndErrors(res, "minimum", minValue, message, refs);
           }
           break;
         case "less_than":
@@ -98,13 +92,7 @@ export function parseBigintDef(
             if (!checkDef.inclusive) {
               res.exclusiveMaximum = true as any;
             }
-            setResponseValueAndErrors(
-              res,
-              "maximum",
-              maxValue,
-              message,
-              refs,
-            );
+            setResponseValueAndErrors(res, "maximum", maxValue, message, refs);
           }
           break;
         case "multiple_of":

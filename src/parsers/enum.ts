@@ -1,4 +1,4 @@
-import { ZodEnumDef } from "zod";
+import { ZodEnumDef } from "../zodV3V4Compat.js";
 
 export type JsonSchema7EnumType = {
   type: "string";
