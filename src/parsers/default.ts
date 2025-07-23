@@ -9,6 +9,6 @@ export function parseDefaultDef(
 ): JsonSchema7Type & { default: any } {
   return {
     ...parseDef(_def.innerType._def, refs),
-    default: _def.defaultValue(),
+    default: _def.defaultValue,
   };
 }

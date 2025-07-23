@@ -32,11 +32,12 @@ export type PostProcessCallback = (
 ) => JsonSchema7Type | undefined;
 
 export const jsonDescription: PostProcessCallback = (jsonSchema, def) => {
-  if (def.description) {
+  // In Zod V4, description is stored in the jsonSchema object, not the def object
+  if (jsonSchema && jsonSchema.description) {
     try {
       return {
         ...jsonSchema,
-        ...JSON.parse(def.description),
+        ...JSON.parse(jsonSchema.description),
       };
     } catch {}
   }

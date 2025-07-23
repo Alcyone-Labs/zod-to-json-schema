@@ -515,15 +515,13 @@ suite("String validations", (test) => {
   });
 
   test("should bundle multiple formats into anyOf", (assert) => {
-    const zodSchema = z.string().ip().email();
+    // In Zod V4, .ip() was removed. Use .ipv4() instead for this test
+    const zodSchema = z.string().ipv4().email();
     const jsonSchema: JSONSchema7Type = {
       type: "string",
       anyOf: [
         {
           format: "ipv4",
-        },
-        {
-          format: "ipv6",
         },
         {
           format: "email",
@@ -535,23 +533,11 @@ suite("String validations", (test) => {
   });
 
   test("should bundle multiple formats into anyOf", (assert) => {
-    const zodSchema = z.string().ip("v4");
+    // In Zod V4, .ip("v4") was replaced with .ipv4()
+    const zodSchema = z.string().ipv4();
     const jsonSchema: JSONSchema7Type = {
       type: "string",
-      anyOf: [
-        {
-          errorMessage: {
-            format: "v4",
-          },
-          format: "ipv4",
-        },
-        {
-          errorMessage: {
-            format: "v4",
-          },
-          format: "ipv6",
-        },
-      ],
+      format: "ipv4",
     };
     const jsonParsedSchema = parseStringDef(zodSchema._def, errorReferences());
     assert(jsonParsedSchema, jsonSchema);

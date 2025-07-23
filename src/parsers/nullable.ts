@@ -1,5 +1,5 @@
 import { ZodNullableDef } from "zod";
-import { parseDef } from "../parseDef.js";
+import { parseDef, getSchemaMetaInfo } from "../parseDef.js";
 import { JsonSchema7Type } from "../parseTypes.js";
 import { Refs } from "../Refs.js";
 import { JsonSchema7NullType } from "./null.js";
@@ -14,46 +14,91 @@ export type JsonSchema7NullableType =
     };
 
 export function parseNullableDef(
-  def: ZodNullableDef,
+  def: any, // Changed for Zod V4 compatibility
   refs: Refs,
 ): JsonSchema7NullableType | undefined {
+  const innerTypeDef = def.innerType.def || def.innerType._def;
+  const innerTypeKey = innerTypeDef.typeName || innerTypeDef.type;
+
   if (
-    ["ZodString", "ZodNumber", "ZodBigInt", "ZodBoolean", "ZodNull"].includes(
-      def.innerType._def.typeName,
-    ) &&
-    (!def.innerType._def.checks || !def.innerType._def.checks.length)
+    [
+      "ZodString",
+      "ZodNumber",
+      "ZodBigInt",
+      "ZodBoolean",
+      "ZodNull",
+      "string",
+      "number",
+      "bigint",
+      "boolean",
+      "null",
+    ].includes(innerTypeKey) &&
+    (!innerTypeDef.checks || !innerTypeDef.checks.length)
   ) {
     if (refs.target === "openApi3") {
       return {
-        type: primitiveMappings[
-          def.innerType._def.typeName as keyof typeof primitiveMappings
-        ],
+        type: primitiveMappings[innerTypeKey as keyof typeof primitiveMappings],
         nullable: true,
       } as any;
     }
 
     return {
       type: [
-        primitiveMappings[
-          def.innerType._def.typeName as keyof typeof primitiveMappings
-        ],
+        primitiveMappings[innerTypeKey as keyof typeof primitiveMappings],
         "null",
       ],
     };
   }
 
   if (refs.target === "openApi3") {
-    const base = parseDef(def.innerType._def, {
+    const base = parseDef(innerTypeDef, {
       ...refs,
       currentPath: [...refs.currentPath],
     });
 
-    if (base && "$ref" in base) return { allOf: [base], nullable: true } as any;
+    if (base && "$ref" in base) {
+      const result = { allOf: [base], nullable: true } as any;
+
+      // Try to get description from the referenced definition
+      const refPath = base.$ref;
+      if (refPath && refPath.includes(refs.definitionPath)) {
+        const pathParts = refPath.split("/");
+        const defName = pathParts[pathParts.length - 1];
+        const definitionSchema = refs.definitions[defName];
+
+        if (definitionSchema) {
+          let description: string | undefined;
+
+          // Try to get description via meta() method
+          if (typeof definitionSchema.meta === "function") {
+            try {
+              const meta = definitionSchema.meta();
+              if (meta && meta.description) {
+                description = meta.description;
+              }
+            } catch (e) {
+              // Ignore errors
+            }
+          }
+
+          // Fallback to direct description property
+          if (!description && definitionSchema.description) {
+            description = definitionSchema.description;
+          }
+
+          if (description) {
+            result.description = description;
+          }
+        }
+      }
+
+      return result;
+    }
 
     return base && ({ ...base, nullable: true } as any);
   }
 
-  const base = parseDef(def.innerType._def, {
+  const base = parseDef(innerTypeDef, {
     ...refs,
     currentPath: [...refs.currentPath, "anyOf", "0"],
   });

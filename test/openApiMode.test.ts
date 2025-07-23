@@ -175,8 +175,8 @@ suite("Open API target", (test) => {
         id: z.number().int().positive(),
         filename: z.string(),
       })
-      .describe("A picture")
-      .strict();
+      .strict()
+      .describe("A picture");
 
     const userSchema = z
       .object({

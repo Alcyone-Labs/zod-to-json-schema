@@ -4,16 +4,23 @@ import {
   ZodTypeAny,
   ZodUnionDef,
 } from "zod";
-import { parseDef } from "../parseDef.js";
+import { parseDef, getSchemaMetaInfo, setSchemaMetaInfo } from "../parseDef.js";
 import { JsonSchema7Type } from "../parseTypes.js";
 import { Refs } from "../Refs.js";
 
 export const primitiveMappings = {
+  // Zod V3 type names
   ZodString: "string",
   ZodNumber: "number",
   ZodBigInt: "integer",
   ZodBoolean: "boolean",
   ZodNull: "null",
+  // Zod V4 type names
+  string: "string",
+  number: "number",
+  bigint: "integer",
+  boolean: "boolean",
+  null: "null",
 } as const;
 type ZodPrimitive = keyof typeof primitiveMappings;
 type JsonSchema7Primitive =
@@ -36,6 +43,35 @@ type JsonSchema7AnyOfType = {
   anyOf: JsonSchema7Type[];
 };
 
+// Function to extract meta information from a schema (similar to zodToJsonSchema.ts)
+const extractMetaInfoForSchema = (schema: any) => {
+  if (!schema || !schema._def) return;
+
+  let metaInfo: any = {};
+
+  // Check for description property (from .describe())
+  if (schema.description) {
+    metaInfo.description = schema.description;
+  }
+
+  // Check for meta function (from .meta())
+  if (typeof schema.meta === 'function') {
+    try {
+      const meta = schema.meta();
+      if (meta && typeof meta === 'object') {
+        metaInfo = { ...metaInfo, ...meta };
+      }
+    } catch (e) {
+      // Ignore errors when calling meta()
+    }
+  }
+
+  // Store the meta information if we found any
+  if (Object.keys(metaInfo).length > 0) {
+    setSchemaMetaInfo(schema._def, metaInfo);
+  }
+};
+
 export function parseUnionDef(
   def: ZodUnionDef | ZodDiscriminatedUnionDef<any, any>,
   refs: Refs,
@@ -45,18 +81,24 @@ export function parseUnionDef(
   const options: readonly ZodTypeAny[] =
     def.options instanceof Map ? Array.from(def.options.values()) : def.options;
 
+  // Extract meta information for each option to ensure descriptions are available
+  options.forEach(option => extractMetaInfoForSchema(option));
+
   // This blocks tries to look ahead a bit to produce nicer looking schemas with type array instead of anyOf.
   if (
     options.every(
-      (x) =>
-        x._def.typeName in primitiveMappings &&
-        (!x._def.checks || !x._def.checks.length),
+      (x) => {
+        const typeKey = x._def.typeName || x._def.type;
+        return typeKey in primitiveMappings &&
+          (!x._def.checks || !x._def.checks.length);
+      }
     )
   ) {
     // all types in union are primitive and lack checks, so might as well squash into {type: [...]}
 
     const types = options.reduce((types: JsonSchema7Primitive[], x) => {
-      const type = primitiveMappings[x._def.typeName as ZodPrimitive]; //Can be safely casted due to row 43
+      const typeKey = x._def.typeName || x._def.type;
+      const type = primitiveMappings[typeKey as ZodPrimitive];
       return type && !types.includes(type) ? [...types, type] : types;
     }, []);
 
@@ -64,13 +106,19 @@ export function parseUnionDef(
       type: types.length > 1 ? types : types[0],
     };
   } else if (
-    options.every((x) => x._def.typeName === "ZodLiteral" && !x.description)
+    options.every((x) => {
+      const typeKey = x._def.typeName || x._def.type;
+      const hasDescription = x.description || getSchemaMetaInfo(x._def)?.description;
+      return (typeKey === "ZodLiteral" || typeKey === "literal") && !hasDescription;
+    })
   ) {
     // all options literals
 
     const types = options.reduce(
-      (acc: JsonSchema7Primitive[], x: { _def: ZodLiteralDef }) => {
-        const type = typeof x._def.value;
+      (acc: JsonSchema7Primitive[], x: { _def: any }) => {
+        // In Zod V4, use values[0] instead of value
+        const value = x._def.values ? x._def.values[0] : x._def.value;
+        const type = typeof value;
         switch (type) {
           case "string":
           case "number":
@@ -79,7 +127,7 @@ export function parseUnionDef(
           case "bigint":
             return [...acc, "integer" as const];
           case "object":
-            if (x._def.value === null) return [...acc, "null" as const];
+            if (value === null) return [...acc, "null" as const];
           case "symbol":
           case "undefined":
           case "function":
@@ -98,20 +146,29 @@ export function parseUnionDef(
         type: uniqueTypes.length > 1 ? uniqueTypes : uniqueTypes[0],
         enum: options.reduce(
           (acc, x) => {
-            return acc.includes(x._def.value) ? acc : [...acc, x._def.value];
+            // In Zod V4, use values[0] instead of value
+            const value = x._def.values ? x._def.values[0] : x._def.value;
+            return acc.includes(value) ? acc : [...acc, value];
           },
           [] as (string | number | bigint | boolean | null)[],
         ),
       };
     }
-  } else if (options.every((x) => x._def.typeName === "ZodEnum")) {
+  } else if (options.every((x) => {
+    const typeKey = x._def.typeName || x._def.type;
+    return typeKey === "ZodEnum" || typeKey === "enum";
+  })) {
     return {
       type: "string",
       enum: options.reduce(
-        (acc: string[], x) => [
-          ...acc,
-          ...x._def.values.filter((x: string) => !acc.includes(x)),
-        ],
+        (acc: string[], x) => {
+          // In Zod V4, use entries instead of values
+          const values = x._def.entries ? Object.values(x._def.entries) : x._def.values;
+          return [
+            ...acc,
+            ...values.filter((x: string) => !acc.includes(x)),
+          ];
+        },
         [],
       ),
     };

@@ -14,6 +14,38 @@ Does what it says on the tin; converts [Zod schemas](https://github.com/colinhac
 - Supports targeting legacy Open API 3.0 specification (3.1 supports regular Json Schema).
 - Supports Open AI strict mode schemas (Optional object properties are replaced with required but nullable ones).
 
+## Zod Version Compatibility
+
+This library is **fully compatible with Zod V4** and maintains backward compatibility with most Zod V3 patterns.
+
+### Zod V4 Support ✅
+
+- **Full compatibility** with Zod V4's new internal structure
+- **Error messages** fully supported with V4's new error system
+- **All validation types** working (string, number, object, array, union, etc.)
+- **Metadata and descriptions** fully supported
+- **Reference handling** optimized for V4's schema structure
+
+### Backward Compatibility
+
+**Most Zod V3 code will work unchanged** with this library and Zod V4. The main exceptions are:
+
+#### Breaking Changes from Zod V3 → V4
+
+Some Zod V3 APIs were removed in V4. Here's what changed and how to migrate:
+
+#### Removed String Methods (Breaking)
+- ❌ `z.string().ip()` → ✅ Use `z.string().ipv4()` or `z.string().ipv6()` or `z.union([z.string().ipv4(), z.string().ipv6()])`
+- ❌ `z.string().cidr()` → ✅ Use `z.string().cidrv4()` or `z.string().cidrv6()`
+
+#### Deprecated but Still Supported (Non-breaking)
+- `z.string().email()` → Prefer `z.email()` (top-level API)
+- `z.object().strict()` → Prefer `z.strictObject()`
+- `z.object().passthrough()` → Prefer `z.looseObject()`
+- `z.string().min(5, { message: "..." })` → Prefer `z.string().min(5, { error: "..." })`
+
+All deprecated methods still work but may be removed in future Zod versions.
+
 ## Sponsors
 
 A great big thank you to our amazing sponsors! Please consider joining them through my [GitHub Sponsors page](https://github.com/sponsors/StefanTerdell). Every cent helps, but these fellas have really gone above and beyond 💚:
@@ -377,6 +409,166 @@ Expected output:
   "examples": ["Foo", "Bar"],
   "whatever": 123
 }
+```
+
+## Migration Guide: Zod V3 → V4
+
+If you're upgrading from Zod V3 to V4, here are the changes you need to make:
+
+### String Validation Changes
+
+#### IP Address Validation
+```typescript
+// ❌ Zod V3 (removed in V4)
+z.string().ip()
+z.string().ip("v4")
+z.string().ip("v6")
+
+// ✅ Zod V4
+z.string().ipv4()
+z.string().ipv6()
+z.union([z.string().ipv4(), z.string().ipv6()]) // for both
+```
+
+#### CIDR Validation
+```typescript
+// ❌ Zod V3 (removed in V4)
+z.string().cidr()
+z.string().cidr("v4")
+z.string().cidr("v6")
+
+// ✅ Zod V4
+z.string().cidrv4()
+z.string().cidrv6()
+z.union([z.string().cidrv4(), z.string().cidrv6()]) // for both
+```
+
+#### Recommended: Use Top-Level APIs
+```typescript
+// ✅ Zod V4 preferred (more tree-shakable)
+z.email()
+z.uuid()
+z.url()
+z.ipv4()
+z.ipv6()
+
+// ⚠️ Still works but deprecated
+z.string().email()
+z.string().uuid()
+z.string().url()
+z.string().ipv4()
+z.string().ipv6()
+```
+
+### Object Schema Changes
+```typescript
+// ⚠️ Deprecated but still works
+z.object({ name: z.string() }).strict()
+z.object({ name: z.string() }).passthrough()
+
+// ✅ Zod V4 preferred
+z.strictObject({ name: z.string() })
+z.looseObject({ name: z.string() })
+```
+
+### Error Message Changes
+```typescript
+// ⚠️ Deprecated but still works
+z.string().min(5, { message: "Too short" })
+
+// ✅ Zod V4 preferred
+z.string().min(5, { error: "Too short" })
+```
+
+### Workarounds for Removed APIs
+
+If you need to support both IPv4 and IPv6 (replacing the old `.ip()` method):
+
+```typescript
+// Create a reusable IP validator
+const ipSchema = z.union([
+  z.string().ipv4(),
+  z.string().ipv6()
+]);
+
+// Use in your schemas
+const serverSchema = z.object({
+  host: ipSchema,
+  port: z.number()
+});
+```
+
+For CIDR ranges:
+```typescript
+const cidrSchema = z.union([
+  z.string().cidrv4(),
+  z.string().cidrv6()
+]);
+```
+
+### Additional Changes to Be Aware Of
+
+#### UUID Validation is Stricter
+```typescript
+// Zod V4 is stricter about UUID format
+z.string().uuid() // Now validates against RFC 9562/4122
+
+// For more permissive UUID-like validation:
+z.string().guid() // Accepts any 8-4-4-4-12 hex pattern
+```
+
+#### Base64URL No Longer Allows Padding
+```typescript
+// Zod V4 base64url is stricter (no padding allowed)
+z.string().base64url() // Must be unpadded
+```
+
+#### Number Validation Changes
+```typescript
+// Safe integers only
+z.number().int() // Now only accepts safe integers
+z.number().safe() // Deprecated, behaves like .int()
+
+// Recommended: Use the new top-level API
+z.int() // Preferred for integers
+```
+
+#### Removed Object Methods
+```typescript
+// ❌ Removed in Zod V4
+z.object().nonstrict() // Use z.object() (default behavior)
+z.object().deepPartial() // No direct replacement (was anti-pattern)
+
+// ⚠️ Deprecated but still works
+z.object().strip() // Use z.object() (default behavior)
+```
+
+### Migration Helpers
+
+For easier migration, you can create these helper functions:
+
+```typescript
+// Helper for IP validation (replaces old .ip() method)
+export const ipAddress = () => z.union([
+  z.string().ipv4(),
+  z.string().ipv6()
+]);
+
+// Helper for CIDR validation (replaces old .cidr() method)
+export const cidrRange = () => z.union([
+  z.string().cidrv4(),
+  z.string().cidrv6()
+]);
+
+// Helper for flexible UUID validation
+export const flexibleUuid = () => z.string().guid(); // More permissive than .uuid()
+
+// Usage in your schemas
+const networkSchema = z.object({
+  serverIp: ipAddress(),
+  allowedRange: cidrRange(),
+  sessionId: flexibleUuid()
+});
 ```
 
 ## Known issues

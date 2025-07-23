@@ -36,78 +36,166 @@ export type InnerDefGetter = () => any;
 
 export const selectParser = (
   def: any,
-  typeName: ZodFirstPartyTypeKind,
+  typeName: any, // Changed from ZodFirstPartyTypeKind to any for Zod V4 compatibility
   refs: Refs,
 ): JsonSchema7Type | undefined | InnerDefGetter => {
-  switch (typeName) {
-    case ZodFirstPartyTypeKind.ZodString:
+  // In Zod V4, typeName is undefined and we need to use def.type instead
+  const actualType = typeName || def.type;
+
+  switch (actualType) {
+    case "ZodString":
+    case "string":
       return parseStringDef(def, refs);
+    case "ZodNumber":
+    case "number":
     case ZodFirstPartyTypeKind.ZodNumber:
       return parseNumberDef(def, refs);
+    case "ZodObject":
+    case "object":
     case ZodFirstPartyTypeKind.ZodObject:
       return parseObjectDef(def, refs);
+    case "ZodBigInt":
+    case "bigint":
     case ZodFirstPartyTypeKind.ZodBigInt:
       return parseBigintDef(def, refs);
+    case "ZodBoolean":
+    case "boolean":
     case ZodFirstPartyTypeKind.ZodBoolean:
       return parseBooleanDef();
+    case "ZodDate":
+    case "date":
     case ZodFirstPartyTypeKind.ZodDate:
       return parseDateDef(def, refs);
+    case "ZodUndefined":
+    case "undefined":
     case ZodFirstPartyTypeKind.ZodUndefined:
       return parseUndefinedDef(refs);
+    case "ZodNull":
+    case "null":
     case ZodFirstPartyTypeKind.ZodNull:
       return parseNullDef(refs);
+    case "ZodArray":
+    case "array":
     case ZodFirstPartyTypeKind.ZodArray:
       return parseArrayDef(def, refs);
+    case "ZodUnion":
+    case "union":
+    case "ZodDiscriminatedUnion":
+    case "discriminatedUnion":
     case ZodFirstPartyTypeKind.ZodUnion:
     case ZodFirstPartyTypeKind.ZodDiscriminatedUnion:
       return parseUnionDef(def, refs);
+    case "ZodIntersection":
+    case "intersection":
     case ZodFirstPartyTypeKind.ZodIntersection:
       return parseIntersectionDef(def, refs);
+    case "ZodTuple":
+    case "tuple":
     case ZodFirstPartyTypeKind.ZodTuple:
       return parseTupleDef(def, refs);
+    case "ZodRecord":
+    case "record":
     case ZodFirstPartyTypeKind.ZodRecord:
       return parseRecordDef(def, refs);
+    case "ZodLiteral":
+    case "literal":
     case ZodFirstPartyTypeKind.ZodLiteral:
       return parseLiteralDef(def, refs);
+    case "ZodEnum":
+    case "enum":
     case ZodFirstPartyTypeKind.ZodEnum:
+      // In Zod V4, both regular and native enums have type "enum"
+      // Distinguish by checking if keys === values (regular enum) or keys !== values (native enum)
+      if (def.entries) {
+        const keys = Object.keys(def.entries);
+        const values = Object.values(def.entries);
+        const isNativeEnum = !keys.every((k, i) => k === values[i]);
+        if (isNativeEnum) {
+          return parseNativeEnumDef(def);
+        }
+      }
       return parseEnumDef(def);
+    case "ZodNativeEnum":
+    case "nativeEnum":
     case ZodFirstPartyTypeKind.ZodNativeEnum:
       return parseNativeEnumDef(def);
+    case "ZodNullable":
+    case "nullable":
     case ZodFirstPartyTypeKind.ZodNullable:
       return parseNullableDef(def, refs);
+    case "ZodOptional":
+    case "optional":
     case ZodFirstPartyTypeKind.ZodOptional:
       return parseOptionalDef(def, refs);
+    case "ZodMap":
+    case "map":
     case ZodFirstPartyTypeKind.ZodMap:
       return parseMapDef(def, refs);
+    case "ZodSet":
+    case "set":
     case ZodFirstPartyTypeKind.ZodSet:
       return parseSetDef(def, refs);
+    case "ZodLazy":
+    case "lazy":
     case ZodFirstPartyTypeKind.ZodLazy:
       return () => (def as any).getter()._def;
+    case "ZodPromise":
+    case "promise":
     case ZodFirstPartyTypeKind.ZodPromise:
       return parsePromiseDef(def, refs);
+    case "ZodNaN":
+    case "nan":
+    case "ZodNever":
+    case "never":
     case ZodFirstPartyTypeKind.ZodNaN:
     case ZodFirstPartyTypeKind.ZodNever:
       return parseNeverDef(refs);
+    case "ZodEffects":
+    case "effects":
     case ZodFirstPartyTypeKind.ZodEffects:
       return parseEffectsDef(def, refs);
+    case "ZodAny":
+    case "any":
     case ZodFirstPartyTypeKind.ZodAny:
       return parseAnyDef(refs);
+    case "ZodUnknown":
+    case "unknown":
     case ZodFirstPartyTypeKind.ZodUnknown:
       return parseUnknownDef(refs);
+    case "ZodDefault":
+    case "default":
     case ZodFirstPartyTypeKind.ZodDefault:
       return parseDefaultDef(def, refs);
+    case "ZodBranded":
+    case "branded":
     case ZodFirstPartyTypeKind.ZodBranded:
       return parseBrandedDef(def, refs);
+    case "ZodReadonly":
+    case "readonly":
     case ZodFirstPartyTypeKind.ZodReadonly:
       return parseReadonlyDef(def, refs);
+    case "ZodCatch":
+    case "catch":
     case ZodFirstPartyTypeKind.ZodCatch:
       return parseCatchDef(def, refs);
+    case "ZodPipeline":
+    case "pipeline":
+    case "pipe": // Zod V4 uses "pipe" instead of "pipeline"
     case ZodFirstPartyTypeKind.ZodPipeline:
       return parsePipelineDef(def, refs);
+    case "ZodFunction":
+    case "function":
+    case "ZodVoid":
+    case "void":
+    case "ZodSymbol":
+    case "symbol":
     case ZodFirstPartyTypeKind.ZodFunction:
     case ZodFirstPartyTypeKind.ZodVoid:
     case ZodFirstPartyTypeKind.ZodSymbol:
       return undefined;
+    case "custom":
+      // Handle z.instanceof() and other custom types - treat as any
+      return parseAnyDef(refs);
     default:
       /* c8 ignore next */
       return ((_: never) => undefined)(typeName);

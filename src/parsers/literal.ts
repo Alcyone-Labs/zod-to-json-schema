@@ -11,10 +11,13 @@ export type JsonSchema7LiteralType =
     };
 
 export function parseLiteralDef(
-  def: ZodLiteralDef,
+  def: any, // Changed from ZodLiteralDef to any for Zod V4 compatibility
   refs: Refs,
 ): JsonSchema7LiteralType {
-  const parsedType = typeof def.value;
+  // In Zod V4, use values[0] instead of value
+  const value = def.values ? def.values[0] : def.value;
+  const parsedType = typeof value;
+
   if (
     parsedType !== "bigint" &&
     parsedType !== "number" &&
@@ -22,19 +25,19 @@ export function parseLiteralDef(
     parsedType !== "string"
   ) {
     return {
-      type: Array.isArray(def.value) ? "array" : "object",
+      type: Array.isArray(value) ? "array" : "object",
     };
   }
 
   if (refs.target === "openApi3") {
     return {
       type: parsedType === "bigint" ? "integer" : parsedType,
-      enum: [def.value],
+      enum: [value],
     } as any;
   }
 
   return {
     type: parsedType === "bigint" ? "integer" : parsedType,
-    const: def.value,
+    const: value,
   };
 }

@@ -33,35 +33,49 @@ export function parseRecordDef(
     );
   }
 
+  // In Zod V4, check for enum type differently
+  const keyTypeDef = def.keyType?.def || def.keyType?._def;
+  const keyTypeType = keyTypeDef?.type || keyTypeDef?.typeName;
+
   if (
     refs.target === "openApi3" &&
-    def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodEnum
+    (keyTypeType === "enum" || keyTypeType === "ZodEnum")
   ) {
-    return {
-      type: "object",
-      required: def.keyType._def.values,
-      properties: def.keyType._def.values.reduce(
-        (acc: Record<string, JsonSchema7Type>, key: string) => ({
-          ...acc,
-          [key]:
-            parseDef(def.valueType._def, {
-              ...refs,
-              currentPath: [...refs.currentPath, "properties", key],
-            }) ?? parseAnyDef(refs),
-        }),
-        {},
-      ),
-      additionalProperties: refs.rejectedAdditionalProperties,
-    } satisfies JsonSchema7ObjectType as any;
+    // In Zod V4, get values from entries or values
+    const enumValues = keyTypeDef?.entries ? Object.values(keyTypeDef.entries) : keyTypeDef?.values;
+    const valueTypeDef = def.valueType?.def || def.valueType?._def;
+
+    if (enumValues && Array.isArray(enumValues)) {
+      return {
+        type: "object",
+        required: enumValues,
+        properties: enumValues.reduce(
+          (acc: Record<string, JsonSchema7Type>, key: string) => ({
+            ...acc,
+            [key]:
+              parseDef(valueTypeDef, {
+                ...refs,
+                currentPath: [...refs.currentPath, "properties", key],
+              }) ?? parseAnyDef(refs),
+          }),
+          {},
+        ),
+        additionalProperties: refs.rejectedAdditionalProperties,
+      } satisfies JsonSchema7ObjectType as any;
+    }
   }
+
+  // In Zod V4, if there's no valueType, the keyType is actually the value type
+  const actualValueType = def.valueType || def.keyType;
+  const valueTypeDef = actualValueType?.def || actualValueType?._def;
 
   const schema: JsonSchema7RecordType = {
     type: "object",
     additionalProperties:
-      parseDef(def.valueType._def, {
+      valueTypeDef ? parseDef(valueTypeDef, {
         ...refs,
         currentPath: [...refs.currentPath, "additionalProperties"],
-      }) ?? refs.allowedAdditionalProperties,
+      }) : refs.allowedAdditionalProperties,
   };
 
   if (refs.target === "openApi3") {
@@ -69,36 +83,44 @@ export function parseRecordDef(
   }
 
   if (
-    def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodString &&
-    def.keyType._def.checks?.length
+    (keyTypeType === "string" || keyTypeType === "ZodString") &&
+    keyTypeDef?.checks?.length
   ) {
-    const { type, ...keyType } = parseStringDef(def.keyType._def, refs);
+    const { type, ...keyType } = parseStringDef(keyTypeDef, refs);
 
     return {
       ...schema,
       propertyNames: keyType,
     };
-  } else if (def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodEnum) {
+  } else if (keyTypeType === "enum" || keyTypeType === "ZodEnum") {
+    const enumValues = keyTypeDef?.entries ? Object.values(keyTypeDef.entries) : keyTypeDef?.values;
     return {
       ...schema,
       propertyNames: {
-        enum: def.keyType._def.values,
+        enum: enumValues,
       },
     };
   } else if (
-    def.keyType?._def.typeName === ZodFirstPartyTypeKind.ZodBranded &&
-    def.keyType._def.type._def.typeName === ZodFirstPartyTypeKind.ZodString &&
-    def.keyType._def.type._def.checks?.length
+    (keyTypeType === "branded" || keyTypeType === "ZodBranded") &&
+    keyTypeDef?.type
   ) {
-    const { type, ...keyType } = parseBrandedDef(
-      def.keyType._def,
-      refs,
-    ) as JsonSchema7StringType;
+    const brandedTypeDef = keyTypeDef.type?.def || keyTypeDef.type?._def;
+    const brandedTypeType = brandedTypeDef?.type || brandedTypeDef?.typeName;
 
-    return {
-      ...schema,
-      propertyNames: keyType,
-    };
+    if (
+      (brandedTypeType === "string" || brandedTypeType === "ZodString") &&
+      brandedTypeDef?.checks?.length
+    ) {
+      const { type, ...keyType } = parseBrandedDef(
+        keyTypeDef,
+        refs,
+      ) as JsonSchema7StringType;
+
+      return {
+        ...schema,
+        propertyNames: keyType,
+      };
+    }
   }
 
   return schema;

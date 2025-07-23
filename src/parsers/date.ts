@@ -17,7 +17,7 @@ export type JsonSchema7DateType =
     };
 
 export function parseDateDef(
-  def: ZodDateDef,
+  def: any, // Changed from ZodDateDef to any for Zod V4 compatibility
   refs: Refs,
   overrideDateStrategy?: DateStrategy,
 ): JsonSchema7DateType {
@@ -46,7 +46,7 @@ export function parseDateDef(
   }
 }
 
-const integerDateParser = (def: ZodDateDef, refs: Refs) => {
+const integerDateParser = (def: any, refs: Refs) => { // Changed from ZodDateDef to any for Zod V4 compatibility
   const res: JsonSchema7DateType = {
     type: "integer",
     format: "unix-time",
@@ -56,26 +56,69 @@ const integerDateParser = (def: ZodDateDef, refs: Refs) => {
     return res;
   }
 
-  for (const check of def.checks) {
-    switch (check.kind) {
-      case "min":
-        setResponseValueAndErrors(
-          res,
-          "minimum",
-          check.value, // This is in milliseconds
-          check.message,
-          refs,
-        );
-        break;
-      case "max":
-        setResponseValueAndErrors(
-          res,
-          "maximum",
-          check.value, // This is in milliseconds
-          check.message,
-          refs,
-        );
-        break;
+  // Handle Zod V4 checks structure
+  if (def.checks) {
+    for (const check of def.checks) {
+      // Handle Zod V4 structure with _zod.def
+      const checkDef = check._zod?.def;
+      if (checkDef) {
+        // Get error message from error function if available
+        let message = checkDef.message;
+        if (!message && checkDef.error && typeof checkDef.error === 'function') {
+          try {
+            message = checkDef.error();
+          } catch (e) {
+            // Ignore error, use undefined message
+          }
+        }
+
+        switch (checkDef.check) {
+          case "greater_than":
+            // Convert Date to milliseconds for JSON Schema
+            const minValue = checkDef.value instanceof Date ? checkDef.value.getTime() : checkDef.value;
+            setResponseValueAndErrors(
+              res,
+              "minimum",
+              minValue,
+              message,
+              refs,
+            );
+            break;
+          case "less_than":
+            // Convert Date to milliseconds for JSON Schema
+            const maxValue = checkDef.value instanceof Date ? checkDef.value.getTime() : checkDef.value;
+            setResponseValueAndErrors(
+              res,
+              "maximum",
+              maxValue,
+              message,
+              refs,
+            );
+            break;
+        }
+      } else {
+        // Fallback to old Zod V3 structure for backward compatibility
+        switch (check.kind) {
+          case "min":
+            setResponseValueAndErrors(
+              res,
+              "minimum",
+              check.value, // This is in milliseconds
+              check.message,
+              refs,
+            );
+            break;
+          case "max":
+            setResponseValueAndErrors(
+              res,
+              "maximum",
+              check.value, // This is in milliseconds
+              check.message,
+              refs,
+            );
+            break;
+        }
+      }
     }
   }
 

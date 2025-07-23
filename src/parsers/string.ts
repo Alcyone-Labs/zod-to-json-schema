@@ -103,30 +103,252 @@ export function parseStringDef(
 
   if (def.checks) {
     for (const check of def.checks) {
-      switch (check.kind) {
-        case "min":
-          setResponseValueAndErrors(
-            res,
-            "minLength",
-            typeof res.minLength === "number"
-              ? Math.max(res.minLength, check.value)
-              : check.value,
-            check.message,
-            refs,
-          );
-          break;
-        case "max":
-          setResponseValueAndErrors(
-            res,
-            "maxLength",
-            typeof res.maxLength === "number"
-              ? Math.min(res.maxLength, check.value)
-              : check.value,
-            check.message,
-            refs,
-          );
+      // Handle Zod V4 structure with _zod.def
+      const checkDef = check._zod?.def;
+      if (checkDef) {
+        switch (checkDef.check) {
+          case "min_length":
+            // Extract error message for min_length check
+            let minLengthMessage = checkDef.message;
+            if (!minLengthMessage && checkDef.error && typeof checkDef.error === 'function') {
+              try {
+                minLengthMessage = checkDef.error();
+              } catch (e) {
+                // Ignore error, use undefined message
+              }
+            }
+            setResponseValueAndErrors(
+              res,
+              "minLength",
+              typeof res.minLength === "number"
+                ? Math.max(res.minLength, checkDef.minimum)
+                : checkDef.minimum,
+              minLengthMessage,
+              refs,
+            );
+            break;
+          case "max_length":
+            // Extract error message for max_length check
+            let maxLengthMessage = checkDef.message;
+            if (!maxLengthMessage && checkDef.error && typeof checkDef.error === 'function') {
+              try {
+                maxLengthMessage = checkDef.error();
+              } catch (e) {
+                // Ignore error, use undefined message
+              }
+            }
+            setResponseValueAndErrors(
+              res,
+              "maxLength",
+              typeof res.maxLength === "number"
+                ? Math.min(res.maxLength, checkDef.maximum)
+                : checkDef.maximum,
+              maxLengthMessage,
+              refs,
+            );
+            break;
+          case "length_equals":
+            // Handle exact length constraint
+            let message = checkDef.message;
+            if (!message && checkDef.error && typeof checkDef.error === 'function') {
+              try {
+                message = checkDef.error();
+              } catch (e) {
+                // Ignore error, use undefined message
+              }
+            }
 
-          break;
+            // For length_equals, the length is stored in checkDef.length
+            const length = checkDef.length;
+            if (length !== undefined) {
+              // Apply length constraint, but respect existing min/max constraints
+              setResponseValueAndErrors(
+                res,
+                "minLength",
+                typeof res.minLength === "number"
+                  ? Math.max(res.minLength, length)
+                  : length,
+                message,
+                refs,
+              );
+              setResponseValueAndErrors(
+                res,
+                "maxLength",
+                typeof res.maxLength === "number"
+                  ? Math.min(res.maxLength, length)
+                  : length,
+                message,
+                refs,
+              );
+            }
+            break;
+          case "string_format":
+            // Extract error message for string format checks
+            let formatMessage = checkDef.message;
+            if (!formatMessage && checkDef.error && typeof checkDef.error === 'function') {
+              try {
+                formatMessage = checkDef.error();
+              } catch (e) {
+                // Ignore error, use undefined message
+              }
+            }
+
+            const format = checkDef.format;
+            if (format === "email") {
+              switch (refs.emailStrategy) {
+                case "format:email":
+                  addFormat(res, "email", formatMessage, refs);
+                  break;
+                case "format:idn-email":
+                  addFormat(res, "idn-email", formatMessage, refs);
+                  break;
+                case "pattern:zod":
+                  addPattern(res, zodPatterns.email, formatMessage, refs);
+                  break;
+              }
+            } else if (format === "uri") {
+              addFormat(res, "uri", formatMessage, refs);
+            } else if (format === "url") {
+              addFormat(res, "uri", formatMessage, refs);
+            } else if (format === "uuid") {
+              addFormat(res, "uuid", formatMessage, refs);
+            } else if (format === "date-time") {
+              addFormat(res, "date-time", formatMessage, refs);
+            } else if (format === "date") {
+              addFormat(res, "date", formatMessage, refs);
+            } else if (format === "time") {
+              addFormat(res, "time", formatMessage, refs);
+            } else if (format === "duration") {
+              addFormat(res, "duration", formatMessage, refs);
+            } else if (format === "datetime") {
+              addFormat(res, "date-time", formatMessage, refs);
+            } else if (format === "ipv4") {
+              addFormat(res, "ipv4", formatMessage, refs);
+            } else if (format === "ipv6") {
+              addFormat(res, "ipv6", formatMessage, refs);
+            } else if (format === "ulid") {
+              // Use the library's ULID pattern for consistency
+              addPattern(res, zodPatterns.ulid, formatMessage, refs);
+            } else if (format === "nanoid") {
+              // Use the library's nanoid pattern for consistency
+              addPattern(res, zodPatterns.nanoid, formatMessage, refs);
+            } else if (format === "cuid") {
+              // Use the library's CUID pattern for consistency
+              addPattern(res, zodPatterns.cuid, formatMessage, refs);
+            } else if (format === "cuid2") {
+              // Use the library's CUID2 pattern for consistency
+              addPattern(res, zodPatterns.cuid2, formatMessage, refs);
+            } else if (format === "base64") {
+              // Handle base64 format with strategy
+              switch (refs.base64Strategy) {
+                case "format:binary":
+                  addFormat(res, "binary" as any, formatMessage, refs);
+                  break;
+                case "contentEncoding:base64":
+                default:
+                  // Default strategy is contentEncoding
+                  if (formatMessage && refs.errorMessages) {
+                    res.errorMessage = {
+                      ...res.errorMessage,
+                      contentEncoding: formatMessage,
+                    };
+                  }
+                  res.contentEncoding = "base64";
+                  break;
+                case "pattern:zod":
+                  // Use the library's base64 pattern for consistency
+                  addPattern(res, zodPatterns.base64, formatMessage, refs);
+                  break;
+              }
+            } else if (format === "regex" && checkDef.pattern) {
+              // Handle Zod V4 regex format
+              let message = checkDef.message;
+              if (!message && checkDef.error && typeof checkDef.error === 'function') {
+                try {
+                  message = checkDef.error();
+                } catch (e) {
+                  // Ignore error, use undefined message
+                }
+              }
+              addPattern(res, checkDef.pattern, message, refs);
+            } else if (checkDef.pattern) {
+              // Handle formats with patterns (cuid, cuid2, nanoid, ulid, startsWith, endsWith, includes, etc.)
+              let message = checkDef.message;
+              if (!message && checkDef.error && typeof checkDef.error === 'function') {
+                try {
+                  message = checkDef.error();
+                } catch (e) {
+                  // Ignore error, use undefined message
+                }
+              }
+
+              // Handle patternStrategy: "preserve" for startsWith, endsWith, includes
+              if (refs.patternStrategy === "preserve") {
+                let preservedPattern: string | undefined;
+
+                if (checkDef.prefix !== undefined) {
+                  // startsWith case
+                  preservedPattern = `^${checkDef.prefix}`;
+                } else if (checkDef.suffix !== undefined) {
+                  // endsWith case
+                  preservedPattern = `${checkDef.suffix}$`;
+                } else if (checkDef.includes !== undefined) {
+                  // includes case
+                  preservedPattern = checkDef.includes;
+                }
+
+                if (preservedPattern !== undefined) {
+                  addPattern(res, new RegExp(preservedPattern), message, refs);
+                  break;
+                }
+              }
+
+              // Normalize Zod V4 patterns to match Zod V3 behavior
+              let normalizedPattern = checkDef.pattern;
+              const patternSource = checkDef.pattern.source;
+
+              // For startsWith: remove trailing .*
+              if (patternSource.startsWith('^') && patternSource.endsWith('.*')) {
+                normalizedPattern = new RegExp(patternSource.slice(0, -2), checkDef.pattern.flags);
+              }
+              // For endsWith: remove leading .*
+              else if (patternSource.startsWith('.*') && patternSource.endsWith('$')) {
+                normalizedPattern = new RegExp(patternSource.slice(2), checkDef.pattern.flags);
+              }
+
+              addPattern(res, normalizedPattern, message, refs);
+            }
+            break;
+        }
+        continue;
+      }
+
+      // Handle old Zod V3 structure for backward compatibility
+      if (check.kind) {
+        switch (check.kind) {
+          case "min":
+            setResponseValueAndErrors(
+              res,
+              "minLength",
+              typeof res.minLength === "number"
+                ? Math.max(res.minLength, check.value)
+                : check.value,
+              check.message,
+              refs,
+            );
+            break;
+          case "max":
+            setResponseValueAndErrors(
+              res,
+              "maxLength",
+              typeof res.maxLength === "number"
+                ? Math.min(res.maxLength, check.value)
+                : check.value,
+              check.message,
+              refs,
+            );
+
+            break;
         case "email":
           switch (refs.emailStrategy) {
             case "format:email":
@@ -150,6 +372,7 @@ export function parseStringDef(
         case "regex":
           addPattern(res, check.regex, check.message, refs);
           break;
+
         case "cuid":
           addPattern(res, zodPatterns.cuid, check.message, refs);
           break;
@@ -279,6 +502,7 @@ export function parseStringDef(
         default:
           /* c8 ignore next */
           ((_: never) => {})(check);
+        }
       }
     }
   }

@@ -5,9 +5,11 @@ export type JsonSchema7EnumType = {
   enum: string[];
 };
 
-export function parseEnumDef(def: ZodEnumDef): JsonSchema7EnumType {
+export function parseEnumDef(def: any): JsonSchema7EnumType {
+  // In Zod V4, use entries instead of values
+  const values = def.entries ? Object.values(def.entries) : def.values;
   return {
     type: "string",
-    enum: Array.from(def.values),
+    enum: Array.from(values),
   };
 }

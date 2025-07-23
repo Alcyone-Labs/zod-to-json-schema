@@ -6,10 +6,11 @@ export type JsonSchema7NativeEnumType = {
 };
 
 export function parseNativeEnumDef(
-  def: ZodNativeEnumDef,
+  def: any, // Changed from ZodNativeEnumDef to any for Zod V4 compatibility
 ): JsonSchema7NativeEnumType {
-  const object = def.values;
-  const actualKeys = Object.keys(def.values).filter((key: string) => {
+  // In Zod V4, use entries instead of values
+  const object = def.entries || def.values;
+  const actualKeys = Object.keys(object).filter((key: string) => {
     return typeof object[object[key]] !== "number";
   });
 
