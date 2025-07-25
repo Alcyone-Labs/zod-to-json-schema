@@ -1,13 +1,15 @@
 # Zod to Json Schema
 
-[![NPM Version](https://img.shields.io/npm/v/zod-to-json-schema.svg)](https://npmjs.org/package/zod-to-json-schema)
+[![NPM Version](https://img.shields.io/npm/v/@alcyone-labs/zod-to-json-schema.svg)](https://npmjs.org/package/@alcyone-labs/zod-to-json-schema)
 [![NPM Downloads](https://img.shields.io/npm/dw/zod-to-json-schema.svg)](https://npmjs.org/package/zod-to-json-schema)
 
-_Looking for the exact opposite? Check out [json-schema-to-zod](https://npmjs.org/package/json-schema-to-zod)_
+_Looking for the exact opposite (for Zod V3)? Check out [json-schema-to-zod](https://npmjs.org/package/json-schema-to-zod)_
 
 ## Summary
 
-Does what it says on the tin; converts [Zod schemas](https://github.com/colinhacks/zod) into [JSON schemas](https://json-schema.org/)!
+Note: This is a fork upgraded to Zod V4
+
+Does what it says on the tin; converts [Zod schemas](https://github.com/colinhacks/zod) V4 into [JSON schemas](https://json-schema.org/)! Even though Zod [now supports JSON Schemas natively](https://zod.dev/json-schema), some people still need an upgraded version of this library, so here it is.
 
 - Supports all relevant schema types, basic string, number and array length validations and string patterns.
 - Resolves recursive and recurring schemas with internal `$ref`s.
@@ -35,10 +37,12 @@ This library is **fully compatible with Zod V4** and maintains backward compatib
 Some Zod V3 APIs were removed in V4. Here's what changed and how to migrate:
 
 #### Removed String Methods (Breaking)
+
 - ❌ `z.string().ip()` → ✅ Use `z.string().ipv4()` or `z.string().ipv6()` or `z.union([z.string().ipv4(), z.string().ipv6()])`
 - ❌ `z.string().cidr()` → ✅ Use `z.string().cidrv4()` or `z.string().cidrv6()`
 
 #### Deprecated but Still Supported (Non-breaking)
+
 - `z.string().email()` → Prefer `z.email()` (top-level API)
 - `z.object().strict()` → Prefer `z.strictObject()`
 - `z.object().passthrough()` → Prefer `z.looseObject()`
@@ -63,7 +67,7 @@ A great big thank you to our amazing sponsors! Please consider joining them thro
           </picture>
         </a>
       </div>
-      <br  />   
+      <br  />
       Cut code review time & bugs in half
       <br/>
       <a href="https://www.coderabbit.ai/" style="text-decoration:none;">coderabbit.ai</a>
@@ -81,7 +85,7 @@ A great big thank you to our amazing sponsors! Please consider joining them thro
           <img alt="stainless" height="45px" src="https://github.com/colinhacks/zod/assets/3084745/5ef4c11b-efeb-4495-90a8-41b83f798600">
         </picture>
       </a>
-      <br  />   
+      <br  />
       Build AI apps and workflows with <a href="https://retool.com/products/ai?ref=stefanterdell&utm_source=github&utm_medium=referral&utm_campaign=stefanterdell">Retool AI</a>
       <br/>
       <a href="https://retool.com/?ref=stefanterdell&utm_source=github&utm_medium=referral&utm_campaign=stefanterdell" style="text-decoration:none;">retool.com</a>
@@ -418,66 +422,71 @@ If you're upgrading from Zod V3 to V4, here are the changes you need to make:
 ### String Validation Changes
 
 #### IP Address Validation
+
 ```typescript
 // ❌ Zod V3 (removed in V4)
-z.string().ip()
-z.string().ip("v4")
-z.string().ip("v6")
+z.string().ip();
+z.string().ip("v4");
+z.string().ip("v6");
 
 // ✅ Zod V4
-z.string().ipv4()
-z.string().ipv6()
-z.union([z.string().ipv4(), z.string().ipv6()]) // for both
+z.string().ipv4();
+z.string().ipv6();
+z.union([z.string().ipv4(), z.string().ipv6()]); // for both
 ```
 
 #### CIDR Validation
+
 ```typescript
 // ❌ Zod V3 (removed in V4)
-z.string().cidr()
-z.string().cidr("v4")
-z.string().cidr("v6")
+z.string().cidr();
+z.string().cidr("v4");
+z.string().cidr("v6");
 
 // ✅ Zod V4
-z.string().cidrv4()
-z.string().cidrv6()
-z.union([z.string().cidrv4(), z.string().cidrv6()]) // for both
+z.string().cidrv4();
+z.string().cidrv6();
+z.union([z.string().cidrv4(), z.string().cidrv6()]); // for both
 ```
 
 #### Recommended: Use Top-Level APIs
+
 ```typescript
 // ✅ Zod V4 preferred (more tree-shakable)
-z.email()
-z.uuid()
-z.url()
-z.ipv4()
-z.ipv6()
+z.email();
+z.uuid();
+z.url();
+z.ipv4();
+z.ipv6();
 
 // ⚠️ Still works but deprecated
-z.string().email()
-z.string().uuid()
-z.string().url()
-z.string().ipv4()
-z.string().ipv6()
+z.string().email();
+z.string().uuid();
+z.string().url();
+z.string().ipv4();
+z.string().ipv6();
 ```
 
 ### Object Schema Changes
+
 ```typescript
 // ⚠️ Deprecated but still works
-z.object({ name: z.string() }).strict()
-z.object({ name: z.string() }).passthrough()
+z.object({ name: z.string() }).strict();
+z.object({ name: z.string() }).passthrough();
 
 // ✅ Zod V4 preferred
-z.strictObject({ name: z.string() })
-z.looseObject({ name: z.string() })
+z.strictObject({ name: z.string() });
+z.looseObject({ name: z.string() });
 ```
 
 ### Error Message Changes
+
 ```typescript
 // ⚠️ Deprecated but still works
-z.string().min(5, { message: "Too short" })
+z.string().min(5, { message: "Too short" });
 
 // ✅ Zod V4 preferred
-z.string().min(5, { error: "Too short" })
+z.string().min(5, { error: "Too short" });
 ```
 
 ### Workarounds for Removed APIs
@@ -486,61 +495,60 @@ If you need to support both IPv4 and IPv6 (replacing the old `.ip()` method):
 
 ```typescript
 // Create a reusable IP validator
-const ipSchema = z.union([
-  z.string().ipv4(),
-  z.string().ipv6()
-]);
+const ipSchema = z.union([z.string().ipv4(), z.string().ipv6()]);
 
 // Use in your schemas
 const serverSchema = z.object({
   host: ipSchema,
-  port: z.number()
+  port: z.number(),
 });
 ```
 
 For CIDR ranges:
+
 ```typescript
-const cidrSchema = z.union([
-  z.string().cidrv4(),
-  z.string().cidrv6()
-]);
+const cidrSchema = z.union([z.string().cidrv4(), z.string().cidrv6()]);
 ```
 
 ### Additional Changes to Be Aware Of
 
 #### UUID Validation is Stricter
+
 ```typescript
 // Zod V4 is stricter about UUID format
-z.string().uuid() // Now validates against RFC 9562/4122
+z.string().uuid(); // Now validates against RFC 9562/4122
 
 // For more permissive UUID-like validation:
-z.string().guid() // Accepts any 8-4-4-4-12 hex pattern
+z.string().guid(); // Accepts any 8-4-4-4-12 hex pattern
 ```
 
 #### Base64URL No Longer Allows Padding
+
 ```typescript
 // Zod V4 base64url is stricter (no padding allowed)
-z.string().base64url() // Must be unpadded
+z.string().base64url(); // Must be unpadded
 ```
 
 #### Number Validation Changes
+
 ```typescript
 // Safe integers only
-z.number().int() // Now only accepts safe integers
-z.number().safe() // Deprecated, behaves like .int()
+z.number().int(); // Now only accepts safe integers
+z.number().safe(); // Deprecated, behaves like .int()
 
 // Recommended: Use the new top-level API
-z.int() // Preferred for integers
+z.int(); // Preferred for integers
 ```
 
 #### Removed Object Methods
+
 ```typescript
 // ❌ Removed in Zod V4
-z.object().nonstrict() // Use z.object() (default behavior)
-z.object().deepPartial() // No direct replacement (was anti-pattern)
+z.object().nonstrict(); // Use z.object() (default behavior)
+z.object().deepPartial(); // No direct replacement (was anti-pattern)
 
 // ⚠️ Deprecated but still works
-z.object().strip() // Use z.object() (default behavior)
+z.object().strip(); // Use z.object() (default behavior)
 ```
 
 ### Migration Helpers
@@ -549,16 +557,11 @@ For easier migration, you can create these helper functions:
 
 ```typescript
 // Helper for IP validation (replaces old .ip() method)
-export const ipAddress = () => z.union([
-  z.string().ipv4(),
-  z.string().ipv6()
-]);
+export const ipAddress = () => z.union([z.string().ipv4(), z.string().ipv6()]);
 
 // Helper for CIDR validation (replaces old .cidr() method)
-export const cidrRange = () => z.union([
-  z.string().cidrv4(),
-  z.string().cidrv6()
-]);
+export const cidrRange = () =>
+  z.union([z.string().cidrv4(), z.string().cidrv6()]);
 
 // Helper for flexible UUID validation
 export const flexibleUuid = () => z.string().guid(); // More permissive than .uuid()
@@ -567,7 +570,7 @@ export const flexibleUuid = () => z.string().guid(); // More permissive than .uu
 const networkSchema = z.object({
   serverIp: ipAddress(),
   allowedRange: cidrRange(),
-  sessionId: flexibleUuid()
+  sessionId: flexibleUuid(),
 });
 ```
 
