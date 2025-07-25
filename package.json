@@ -1,7 +1,7 @@
 {
   "name": "zod-to-json-schema",
   "version": "4.0.5",
-  "description": "Converts Zod schemas to Json Schemas",
+  "description": "Converts Zod schemas to Json Schemas (Fork upgraded to Zod V4)",
   "types": "./dist/types/index.d.ts",
   "main": "./dist/cjs/index.js",
   "module": "./dist/esm/index.js",
@@ -45,6 +45,7 @@
   ],
   "author": "Stefan Terdell",
   "contributors": [
+    "Nicolas Embleton (https://github.com/nicolasembleton)",
     "Hammad Asif (https://github.com/mrhammadasif)",
     "Noah Rosenzweig (https://github.com/Noah2610)",
     "John Wright (https://github.com/johngeorgewright)",
@@ -69,7 +70,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/StefanTerdell/zod-to-json-schema"
+    "url": "https://github.com/alcyone-labs/zod-to-json-schema"
   },
   "license": "ISC",
   "peerDependencies": {
