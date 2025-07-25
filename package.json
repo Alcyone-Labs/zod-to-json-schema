@@ -1,5 +1,5 @@
 {
-  "name": "zod-to-json-schema",
+  "name": "@alcyone-labs/zod-to-json-schema",
   "version": "4.0.5",
   "description": "Converts Zod schemas to Json Schemas (Fork upgraded to Zod V4)",
   "types": "./dist/types/index.d.ts",
